@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Path Connection Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        canvas {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+            background: #f8f9fa;
+        }
+        
+        /* Apply custom cursor when game is active */
+        canvas.game-active {
+            cursor: pointer;
+        }
+        
+        canvas.game-active.custom-cursor {
+            cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFYSUIBVCiRpZM9SwNBEIafgyCIjY2FjY2NrW1sbW1tbGxtbW1tY2tra2tjY2NjY2Nra2tra2tjY2NjY2tra2tjY2NjY2NjY2Nra/wCG1tbG1sbW1tbG1tbW1tbW1tbG1tbW1tbWxtbW1tbW1tbG1tbW1tbW1tbG1tbW1tbW1tbG1tbW1tbG1tbW1tbG1tbW1tbW1tbW1tbW1tbW1tbW1tbWxtb7OzsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsnZ0AAAD//wMABQAFAAUABgAAAABJRU5ErkJggg=='), auto;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .new-game {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            color: white;
+        }
+        
+        .check-solution {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            color: white;
+        }
+        
+        .timer {
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .timer.warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            animation: pulse 1s infinite;
+        }
+        
+        .timer.critical {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            animation: flash 0.5s infinite;
+        }
+        
+        .status {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .success {
+            color: #4ECDC4;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* TODO: Replace cursor image URL with your custom cursor image */
+        .custom-cursor {
+            cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFYSURBVCiRpZM9SwNBEIafgyCIjY2FjY2NrW1sbW1tbGxtbW1tY2tra2tjY2NjY2Nra2tra2tjY2NjY2tra2tjY2NjY2NjY2Nra/wCG1tbG1sbW1tbG1tbW1tbW1tbG1tbW1tbWxtbW1tbW1tbG1tbW1tbW1tbG1tbW1tbW1tbG1tbW1tbG1tbW1tbG1tbW1tbW1tbW1tbW1tbW1tbW1tbWxtb7OzsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsnZ0AAAD//wMABQAFAAUABgAAAABJRU5ErkJggg=='), auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧩 Path Connection Puzzle</h1>
+    <div class="instructions">
+        Connect the <strong>START</strong> point to all <strong>3 cloud servers</strong> by rotating the tiles!
+    </div>
+    
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    
+    <div class="controls">
+        <button class="new-game" onclick="startNewGame()">🎮 New Game</button>
+        <button class="check-solution" onclick="checkSolution()">✅ Check Solution</button>
+        <div id="timer" class="timer">⏰ 30s</div>
+    </div>
+    
+    <div id="status" class="status"></div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const timerDiv = document.getElementById('timer');
+        
+        const GRID_SIZE = 5;
+        const CELL_SIZE = canvas.width / GRID_SIZE;
+        
+        // Game state
+        let grid = [];
+        let gameTimer = 30;
+        let timerInterval = null;
+        let gameActive = false;
+        
+        // Path types: 0=horizontal, 1=vertical, 2=T-junction (3 connections), 3-5=corner L-shapes
+        const PATH_TYPES = [
+            [[0, 0.5], [1, 0.5]], // horizontal line
+            [[0.5, 0], [0.5, 1]], // vertical line  
+            [[0, 0.5], [0.5, 0], [0.5, 1]], // T-junction: left, up, down
+            [[0, 0.5], [0.5, 1]], // corner: left to bottom
+            [[0.5, 0], [1, 0.5]], // corner: top to right
+            [[1, 0.5], [0.5, 1]]  // corner: right to bottom
+        ];
+        
+        // Timer functions
+        function startTimer() {
+            gameTimer = 30;
+            gameActive = true;
+            updateTimerDisplay();
+            
+            // Add active game class to canvas for cursor styling
+            canvas.classList.add('game-active');
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            timerInterval = setInterval(() => {
+                gameTimer--;
+                updateTimerDisplay();
+                
+                if (gameTimer <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            gameActive = false;
+            
+            // Remove active game class from canvas
+            canvas.classList.remove('game-active');
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+        
+        function updateTimerDisplay() {
+            if (gameTimer <= 0) {
+                timerDiv.textContent = '⏰ TIME UP!';
+                timerDiv.className = 'timer critical';
+            } else if (gameTimer <= 10) {
+                timerDiv.textContent = `⏰ ${gameTimer}s`;
+                timerDiv.className = 'timer critical';
+            } else if (gameTimer <= 15) {
+                timerDiv.textContent = `⏰ ${gameTimer}s`;
+                timerDiv.className = 'timer warning';
+            } else {
+                timerDiv.textContent = `⏰ ${gameTimer}s`;
+                timerDiv.className = 'timer';
+            }
+        }
+        
+        function endGame(won) {
+            stopTimer();
+            gameActive = false;
+            
+            if (won) {
+                statusDiv.textContent = '🎉 Perfect! All cloud servers connected!';
+                statusDiv.className = 'status success';
+                timerDiv.textContent = '⏰ COMPLETED!';
+                timerDiv.className = 'timer';
+            } else {
+                statusDiv.textContent = '⏰ Time\'s up! Try again with a new game.';
+                statusDiv.className = 'status';
+                timerDiv.textContent = '⏰ TIME UP!';
+                timerDiv.className = 'timer critical';
+            }
+        }
+        
+        function initializeGrid() {
+            grid = [];
+            
+            // Create grid with random path pieces
+            for (let y = 0; y < GRID_SIZE; y++) {
+                grid[y] = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    // Create a working solution first (simple paths to 3 endpoints)
+                    if (y === 2 && x === 0) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // start horizontal
+                    } else if (y === 2 && x === 1) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // continue horizontal
+                    } else if (y === 2 && x === 2) {
+                        grid[y][x] = { type: 2, rotation: 0 }; // T-junction
+                    } else if (y === 1 && x === 2) {
+                        grid[y][x] = { type: 1, rotation: 0 }; // vertical up
+                    } else if (y === 3 && x === 2) {
+                        grid[y][x] = { type: 1, rotation: 0 }; // vertical down
+                    } else if (y === 2 && x === 3) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // continue right
+                    } else if (y === 1 && x === 3) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // to endpoint 1
+                    } else if (y === 3 && x === 3) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // to endpoint 3
+                    } else if (y === 2 && x === 4) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // to endpoint 2
+                    } else if (y === 1 && x === 4) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // endpoint 1
+                    } else if (y === 3 && x === 4) {
+                        grid[y][x] = { type: 0, rotation: 0 }; // endpoint 3
+                    } else {
+                        // Random pieces for unused cells
+                        const type = Math.floor(Math.random() * PATH_TYPES.length);
+                        grid[y][x] = { type: type, rotation: 0 };
+                    }
+                }
+            }
+            
+            // Shuffle by applying random rotations
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    grid[y][x].rotation = Math.floor(Math.random() * 4);
+                }
+            }
+        }
+        
+        function drawStartPoint() {
+            // Draw start point indicator within the canvas
+            const startX = 50;
+            const startY = 2 * CELL_SIZE + CELL_SIZE / 2;
+            
+            // Draw background rectangle for the start area
+            ctx.fillStyle = '#27ae60';
+            ctx.fillRect(0, 2 * CELL_SIZE + 10, 80, CELL_SIZE - 20);
+            
+            // Draw border
+            ctx.strokeStyle = '#1e8449';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 2 * CELL_SIZE + 10, 80, CELL_SIZE - 20);
+            
+            // Draw large arrow pointing right
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(15, startY - 15);
+            ctx.lineTo(45, startY);
+            ctx.lineTo(15, startY + 15);
+            ctx.lineTo(25, startY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add "START" text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('START', 40, startY + 25);
+            
+            // Add connection indicator
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.arc(80, startY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(80, startY, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawCloud(x, y) {
+            // TODO: Replace this function with your custom cloud image
+            // You can use: ctx.drawImage(yourCloudImage, x - 25, y - 25, 50, 50);
+            
+            // Draw a cloud shape
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(x - 12, y - 5, 8, 0, Math.PI * 2);
+            ctx.arc(x, y - 8, 12, 0, Math.PI * 2);
+            ctx.arc(x + 12, y - 5, 8, 0, Math.PI * 2);
+            ctx.arc(x - 8, y + 3, 6, 0, Math.PI * 2);
+            ctx.arc(x + 8, y + 3, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw cloud outline
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw server icon in cloud center
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(x - 8, y - 6, 16, 12);
+            
+            // Draw server details
+            ctx.fillStyle = '#2980b9';
+            ctx.fillRect(x - 6, y - 4, 12, 2);
+            ctx.fillRect(x - 6, y - 1, 12, 2);
+            ctx.fillRect(x - 6, y + 2, 12, 2);
+            
+            // Add LED indicators
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(x - 4, y - 3, 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.arc(x - 4, y, 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.arc(x - 4, y + 3, 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawPath(x, y, pathType, rotation) {
+            const cellX = x * CELL_SIZE;
+            const cellY = y * CELL_SIZE;
+            
+            ctx.save();
+            
+            // Draw tile background with gradient
+            const bgGradient = ctx.createLinearGradient(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE);
+            bgGradient.addColorStop(0, '#3498db');
+            bgGradient.addColorStop(1, '#2980b9');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+            
+            // Add semi-transparent overlay
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+            
+            const centerX = cellX + CELL_SIZE / 2;
+            const centerY = cellY + CELL_SIZE / 2;
+            
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotation * Math.PI / 2);
+            ctx.translate(-CELL_SIZE / 2, -CELL_SIZE / 2);
+            
+            const path = PATH_TYPES[pathType];
+            if (path) {
+                ctx.strokeStyle = '#f39c12';
+                ctx.lineWidth = 12;
+                ctx.lineCap = 'round';
+                
+                // Draw path segments
+                if (pathType === 2) { // T-junction - draw from center to each endpoint
+                    const centerPosX = CELL_SIZE / 2;
+                    const centerPosY = CELL_SIZE / 2;
+                    
+                    for (let i = 0; i < path.length; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(centerPosX, centerPosY);
+                        ctx.lineTo(path[i][0] * CELL_SIZE, path[i][1] * CELL_SIZE);
+                        ctx.stroke();
+                    }
+                } else { // Regular 2-point paths
+                    ctx.beginPath();
+                    ctx.moveTo(path[0][0] * CELL_SIZE, path[0][1] * CELL_SIZE);
+                    ctx.lineTo(path[1][0] * CELL_SIZE, path[1][1] * CELL_SIZE);
+                    ctx.stroke();
+                }
+                
+                // Draw connection points
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+                gradient.addColorStop(0, '#f39c12');
+                gradient.addColorStop(0.7, '#e67e22');
+                gradient.addColorStop(1, '#d35400');
+                
+                ctx.fillStyle = gradient;
+                for (let point of path) {
+                    ctx.beginPath();
+                    ctx.arc(point[0] * CELL_SIZE, point[1] * CELL_SIZE, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.arc(point[0] * CELL_SIZE, point[1] * CELL_SIZE, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = gradient;
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            bgGradient.addColorStop(0, '#f8f9fa');
+            bgGradient.addColorStop(1, '#e9ecef');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(52, 73, 94, 0.2)';
+            ctx.lineWidth = 2;
+            
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(canvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            // Draw start point first (so it appears behind paths)
+            drawStartPoint();
+            
+            // Draw paths
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = grid[y][x];
+                    drawPath(x, y, cell.type, cell.rotation);
+                }
+            }
+            
+            // Draw cloud endpoints
+            drawCloud(430, 100); // Row 1
+            drawCloud(430, 200); // Row 2  
+            drawCloud(430, 300); // Row 3
+            
+            // Add text labels for clarity
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('CLOUD 1', 450, 70);
+            ctx.fillText('CLOUD 2', 450, 170);
+            ctx.fillText('CLOUD 3', 450, 270);
+        }
+        
+        function getPathConnections(x, y, pathType, rotation) {
+            if (!PATH_TYPES[pathType]) return [];
+            
+            const path = PATH_TYPES[pathType];
+            const connections = [];
+            
+            for (let point of path) {
+                let px = point[0];
+                let py = point[1];
+                
+                // Apply rotation
+                for (let r = 0; r < rotation; r++) {
+                    let temp = px;
+                    px = 1 - py;
+                    py = temp;
+                }
+                
+                // Convert to grid connections
+                if (Math.abs(px - 0) < 0.1) connections.push('left');
+                if (Math.abs(px - 1) < 0.1) connections.push('right');
+                if (Math.abs(py - 0) < 0.1) connections.push('top');
+                if (Math.abs(py - 1) < 0.1) connections.push('bottom');
+            }
+            
+            return [...new Set(connections)]; // Remove duplicates
+        }
+        
+        function checkSolution() {
+            if (!gameActive) {
+                statusDiv.textContent = 'Start a new game to play!';
+                statusDiv.className = 'status';
+                return;
+            }
+            
+            const visited = new Set();
+            let connectedClouds = 0;
+            
+            function dfs(x, y, fromDirection, targetY) {
+                if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return false;
+                if (visited.has(`${x},${y}`)) return false;
+                
+                const cell = grid[y][x];
+                const connections = getPathConnections(x, y, cell.type, cell.rotation);
+                
+                if (fromDirection && !connections.includes(fromDirection)) return false;
+                
+                visited.add(`${x},${y}`);
+                
+                if (x === GRID_SIZE - 1 && y === targetY) return true;
+                
+                for (let connection of connections) {
+                    if (connection === fromDirection) continue;
+                    
+                    let nextX = x, nextY = y, nextFromDirection;
+                    
+                    switch(connection) {
+                        case 'right': nextX = x + 1; nextFromDirection = 'left'; break;
+                        case 'left': nextX = x - 1; nextFromDirection = 'right'; break;
+                        case 'bottom': nextY = y + 1; nextFromDirection = 'top'; break;
+                        case 'top': nextY = y - 1; nextFromDirection = 'bottom'; break;
+                    }
+                    
+                    if (dfs(nextX, nextY, nextFromDirection, targetY)) return true;
+                }
+                
+                return false;
+            }
+            
+            // Check paths to each cloud endpoint
+            const cloudTargets = [1, 2, 3];
+            for (let targetY of cloudTargets) {
+                visited.clear();
+                if (dfs(0, 2, null, targetY)) {
+                    connectedClouds++;
+                }
+            }
+            
+            if (connectedClouds === 3) {
+                endGame(true);
+            } else if (connectedClouds > 0) {
+                statusDiv.textContent = `✅ ${connectedClouds} out of 3 clouds connected. Keep going!`;
+                statusDiv.className = 'status';
+            } else {
+                statusDiv.textContent = '❌ No clouds connected. Try rotating more tiles!';
+                statusDiv.className = 'status';
+            }
+        }
+        
+        function handleClick(event) {
+            if (!gameActive) {
+                statusDiv.textContent = 'Start a new game to play!';
+                statusDiv.className = 'status';
+                return;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((event.clientY - rect.top) / CELL_SIZE);
+            
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                grid[y][x].rotation = (grid[y][x].rotation + 1) % 4;
+                drawGrid();
+                
+                // Auto-check solution after each move
+                setTimeout(checkSolution, 100);
+            }
+        }
+        
+        function startNewGame() {
+            stopTimer(); // Stop any existing timer
+            initializeGrid();
+            drawGrid();
+            startTimer(); // Start the countdown
+            statusDiv.textContent = 'Game started! Connect all 3 cloud servers before time runs out!';
+            statusDiv.className = 'status';
+        }
+        
+        canvas.addEventListener('click', handleClick);
+        
+        // Initialize the game
+        initializeGrid();
+        drawGrid();
+        statusDiv.textContent = 'Click "New Game" to start the 30-second challenge!';
+        statusDiv.className = 'status';
+    </script>
+</body>
+</html>
